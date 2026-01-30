@@ -10,18 +10,21 @@ set( SOURCES
 project(${APPNAME})
 
 # OPTIONS
-set( GLFW_BUILD_WAYLAND OFF )
-set( GLFW_BUILD_X11 OFF )
 set( GLFW_BUILD_DOCS OFF CACHE BOOL "GFLW lib only" )
 set( GLFW_INSTALL OFF CACHE BOOL "GLFW lib only" )
 
 # EXECUTABLE
-add_executable( ${APPNAME} ${SOURCES} )
+add_executable( ${APPNAME} )
+target_sources( ${APPNAME} 
+    PRIVATE
+        ${SOURCES} 
+)
 target_include_directories( ${APPNAME}
     PRIVATE
         "${PROJECT_SOURCE_DIR}/include"
         "${PROJECT_SOURCE_DIR}/vendor/glad/include"
         "${PROJECT_SOURCE_DIR}/vendor/glfw/include"
+        "${PROJECT_SOURCE_DIR}/vendor/glm"
 )
 
 # VENDOR
