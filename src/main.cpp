@@ -41,32 +41,14 @@ int main() {
 
     // attempt to load a shader from file...
     // TODO: error handling!
-    shader frag("../../src/gl/frag/shader.frag");
-    shader vert("../../src/gl/vert/shader.vert");
-
-    const char* vertSource = vert.getSource(); printf("%s\n", vertSource);
-    const char* fragSource = frag.getSource(); printf("%s\n", fragSource);
+    shader frag("../../src/gl/frag/shader.frag", GL_FRAGMENT_SHADER);
+    shader vert("../../src/gl/vert/shader.vert", GL_VERTEX_SHADER);
 
     // COMPILING SHADERS AND STUFF...
     
     /*SHADERS*/
-    uint32_t vertShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertShader, 1, &vertSource, NULL);
-    glCompileShader(vertShader);
-    
-    uint32_t fragShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragShader, 1, &fragSource, NULL);
-    glCompileShader(fragShader);
-    
-    int_fast32_t success;
-    glGetShaderiv(vertShader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        char infolog[512];
-        glGetShaderInfoLog(vertShader, 512, NULL, infolog);
-        printf("THERE WAS TROUBLE LOADING SHADERS!\n   %s", infolog);
-    } else {
-        printf("There was NO TROUBLE LOADING THE SHADERS!\n");
-    }
+    uint32_t fragShader = frag.getShaderHandle();
+    uint32_t vertShader = vert.getShaderHandle();
     
         /*VAO*/
     uint32_t VAO;
@@ -89,7 +71,6 @@ int main() {
     glAttachShader(shaderProgram, vertShader);
     glAttachShader(shaderProgram, fragShader);
     glLinkProgram(shaderProgram);
-    glUseProgram(shaderProgram);
     
     
     // LOOP!
