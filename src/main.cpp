@@ -34,9 +34,14 @@ int main() {
     printf("Successfully loaded OpenGL! %d.%d\n", GLAD_VERSION_MAJOR(version), GLAD_VERSION_MINOR(version));
     
     float vertices[] = {
-        -0.5f, -0.5f, 0.0f,
-        0.5f, -0.5f, 0.0f,
-        0.0f,  0.5f, 0.0f
+     0.5f,  0.5f, 0.0f,  // top right
+     0.5f, -0.5f, 0.0f,  // bottom right
+    -0.5f, -0.5f, 0.0f,  // bottom left
+    -0.5f,  0.5f, 0.0f   // top left
+    };
+    uint32_t indices[] = {
+        0, 1, 3,
+        1, 2, 3
     };
 
     // attempt to load a shader from file...
@@ -46,18 +51,24 @@ int main() {
 
     // COMPILING SHADERS AND STUFF...
     
-    /*SHADERS*/
+        /*SHADERS*/
     uint32_t fragShader = frag.getShaderHandle();
     uint32_t vertShader = vert.getShaderHandle();
     
         /*VAO*/
     uint32_t VAO;
     glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
     
+        /*EBO*/
+    uint32_t EBO;
+    glGenBuffers(1, &EBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
         /*VBO*/
     uint32_t VBO;
     glGenBuffers(1, &VBO);
-    glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
@@ -71,6 +82,7 @@ int main() {
     glAttachShader(shaderProgram, vertShader);
     glAttachShader(shaderProgram, fragShader);
     glLinkProgram(shaderProgram);
+    glUseProgram(shaderProgram);
     
     
     // LOOP!
@@ -78,10 +90,8 @@ int main() {
         glClearColor(0.1f, 0.3f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         
-        glUseProgram(shaderProgram);
-        glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-        
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
