@@ -10,7 +10,7 @@ shader::shader(std::string filePath, int SHADER_TYPE) {
     // reads sourceCode from filePath; initializes sourcePath...
     sourcePath = filePath;
     shaderType = SHADER_TYPE;
-    shaderHandle = glCreateShader(shaderType);
+    shaderHandle = NULL;
     updateSource();
 }
 
@@ -20,7 +20,7 @@ shader::~shader() {
 }
 
 // updates sourceCode
-const void shader::updateSource() { // since this method modifies member variables, it should NOT be const...?
+void shader::updateSource() {
     std::ifstream fileSource(sourcePath);
     std::stringstream fileStream;
     
@@ -30,6 +30,11 @@ const void shader::updateSource() { // since this method modifies member variabl
     std::string sourceCode = fileStream.str();
     const char* source = sourceCode.c_str();
 
+    if (glIsShader(shaderHandle)) {
+        glDeleteShader(shaderHandle);
+    }
+    
+    shaderHandle = glCreateShader(shaderType);
     glShaderSource(shaderHandle, 1, &source, NULL);
     glCompileShader(shaderHandle);
 
@@ -43,15 +48,8 @@ const void shader::updateSource() { // since this method modifies member variabl
     } else {
         printf("%d: SHADER SUCCESSFULLY COMPILED!\n", shaderHandle);
     }
-
-    // std::cout << "final contents of sourceCode:\n   " << sourceCode << std::endl;
 }
 
 const uint32_t shader::getShaderHandle() {
     return shaderHandle;
 }
-
-// const char* shader::getSource() {
-//     return sourceCode.c_str();
-// }
-

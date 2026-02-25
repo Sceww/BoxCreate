@@ -15,8 +15,6 @@ public:
     shader(std::string filePath, int SHADER_TYPE);
     ~shader();
 
-    // const char* getSource();
     const uint32_t getShaderHandle();
-    const void updateSource();
-    const void deleteShader();
+    void updateSource();
 };

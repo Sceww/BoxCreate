@@ -6,6 +6,7 @@ set( SOURCES
     "vendor/glad/src/gl.c"
     "src/main.cpp"
     "src/class/shader.cpp"
+    "src/class/shaderProgram.cpp"
 )
 
 project("BoxCreator")
