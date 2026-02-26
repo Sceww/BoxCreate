@@ -35,23 +35,24 @@ int main() {
     printf("Successfully loaded OpenGL! %d.%d\n", GLAD_VERSION_MAJOR(version), GLAD_VERSION_MINOR(version));
     
     float box[] = {
-     0.5f,  0.5f, 0.0f,  // top right
-     0.5f, -0.5f, 0.0f,  // bottom right
-    -0.5f, -0.5f, 0.0f,  // bottom left
-    -0.5f,  0.5f, 0.0f   // top left
-    };
-    float triangle[] {
-        -1.0f, -1.0f, 0.0f,
-        0.0f, 1.0f, 0.0f,
-        1.0f, -1.0f, 0.0f
+        // POSITIONAL DATA    // COLOR DATA
+        0.5f,  0.5f, 0.0f,   1.0, 0.0, 0.0,     // top right
+        0.5f, -0.5f, 0.0f,   0.0, 1.0, 0.0,     // bottom right
+       -0.5f, -0.5f, 0.0f,   0.0, 0.0, 1.0,     // bottom left
+       -0.5f,  0.5f, 0.0f,   1.0, 1.0, 1,0      // top left
     };
     uint32_t boxIndices[] = {
         0, 1, 3,
         1, 2, 3
     };
-    uint32_t triIndices[] = {
-        0, 1, 2
-    };
+    // float triangle[] {
+    //    -1.0f, -1.0f, 0.0f,
+    //     0.0f,  1.0f, 0.0f,
+    //     1.0f, -1.0f, 0.0f
+    // };
+    // uint32_t triIndices[] = {
+    //     0, 1, 2
+    // };
 
     // attempt to load a shader from file...
     // TODO: error handling!
@@ -77,27 +78,29 @@ int main() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[0]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(boxIndices), boxIndices, GL_STATIC_DRAW);
         /*Wrap up*/
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0 ); // each 'object' with a VertexArrayObject needs to define its own Attribute Pointers (?)
-    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 6, (void*)0 ); // each 'object' with a VertexArrayObject needs to define its own Attribute Pointers (?)
+    glEnableVertexAttribArray(0); // vertex pos
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 6, (void*)(sizeof(float) * 3));
+    glEnableVertexAttribArray(1); // vertex color
 
-    glBindVertexArray(NULL); // Doesn't need to be here currently, but is good practice...
+    // glBindVertexArray(NULL); // Doesn't need to be here currently, but is good practice...
 
     //Object 2 (Triangle)
-    glBindVertexArray(VAO[1]); // What exactly do VAOs store????
+    // glBindVertexArray(VAO[1]); // What exactly do VAOs store????
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(triangle), triangle, GL_STATIC_DRAW);
+    // glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
+    // glBufferData(GL_ARRAY_BUFFER, sizeof(triangle), triangle, GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[1]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(triIndices), triIndices, GL_STATIC_DRAW);
+    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[1]);
+    // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(triIndices), triIndices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0 ); // define vertex attribute of object 2...
-    glEnableVertexAttribArray(0);
+    // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0 ); // define vertex attribute of object 2...
+    // glEnableVertexAttribArray(0);
     
     glBindVertexArray(NULL); // We NEED to do this to ensure that future unrelated VAO calls don't modify previous attributes!
 
     /*PROGRAM*/
-    shaderProgram program(&frag, &vert);
+    // shaderProgram program(&frag, &vert);
     shaderProgram program2(&frag2, &vert);
 
     glBindVertexArray(0);
@@ -108,12 +111,18 @@ int main() {
         
         // Draw objects here!
             /*TRIANGLE*/
-        program2.useProgram();
-        glBindVertexArray(VAO[1]);
-        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+        // program2.useProgram();
+        // glBindVertexArray(VAO[1]);
+        // glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
         
             /*BOX*/
-        program.useProgram();
+        float timeVal = (sin(glfwGetTime() * 4) + 1) / 2.0;
+        int timeUniformHandle = glGetUniformLocation(program2.getProgramHandle(), "globalTime");
+
+        program2.useProgram();
+
+        glUniform1f(timeUniformHandle, timeVal);
+
         glBindVertexArray(VAO[0]);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
