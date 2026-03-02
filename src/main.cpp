@@ -1,6 +1,8 @@
 #include <iostream>
 #include <fstream>
 
+#include <stb_image.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -35,15 +37,15 @@ int main() {
     printf("Successfully loaded OpenGL! %d.%d\n", GLAD_VERSION_MAJOR(version), GLAD_VERSION_MINOR(version));
     
     float box[] = {
-        // POSITIONAL DATA    // COLOR DATA
-        0.5f,  0.5f, 0.0f,   1.0, 0.0, 0.0,     // top right
-        0.5f, -0.5f, 0.0f,   0.0, 1.0, 0.0,     // bottom right
-       -0.5f, -0.5f, 0.0f,   0.0, 0.0, 1.0,     // bottom left
-       -0.5f,  0.5f, 0.0f,   1.0, 1.0, 1,0      // top left
+        // POSITIONAL DATA   // COLOR DATA    // UV
+        0.5f,  0.5f, 0.0f,   1.0, 0.0, 0.0,   1.0, 1.0,  // top right
+        0.5f, -0.5f, 0.0f,   0.0, 1.0, 0.0,   1.0, 0.0,  // bottom right
+       -0.5f, -0.5f, 0.0f,   0.0, 0.0, 1.0,   0.0, 0.0,  // bottom left
+       -0.5f,  0.5f, 0.0f,   1.0, 1.0, 1,0,   0.0, 1.0   // top left
     };
     uint32_t boxIndices[] = {
-        0, 1, 3,
-        1, 2, 3
+        0, 1, 3, // tri 1
+        1, 2, 3  // tri 2
     };
     // float triangle[] {
     //    -1.0f, -1.0f, 0.0f,
@@ -57,7 +59,7 @@ int main() {
     // attempt to load a shader from file...
     // TODO: error handling!
     shader frag("../../src/gl/frag/shader.frag", GL_FRAGMENT_SHADER);
-    shader frag2("../../src/gl/frag/shader2.frag", GL_FRAGMENT_SHADER);
+    // shader frag2("../../src/gl/frag/shader2.frag", GL_FRAGMENT_SHADER);
     shader vert("../../src/gl/vert/shader.vert", GL_VERTEX_SHADER);
 
     // COMPILING SHADERS AND STUFF...
@@ -72,36 +74,42 @@ int main() {
     //Object 1 (Box)
     glBindVertexArray(VAO[0]);
         /*VBO*/
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);    
-    glBufferData(GL_ARRAY_BUFFER, sizeof(box), box, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);      /* If we want to update our vertices later, we'd have to call glBindBuffer() with 
+                                                    A.) The correct VertexArrayObject binded
+                                                    B.) glBufferData(GL_ARRAY_BUFFER, sizeof(box), box, GL_DYNAMIC_DRAW)*/
+    glBufferData(GL_ARRAY_BUFFER, sizeof(box), box, GL_STATIC_DRAW); // static draw places these vertices in a slower read cache.
         /*EBO*/
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[0]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(boxIndices), boxIndices, GL_STATIC_DRAW);
         /*Wrap up*/
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 6, (void*)0 ); // each 'object' with a VertexArrayObject needs to define its own Attribute Pointers (?)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 8, (void*)0 ); // each 'object' with a VertexArrayObject needs to define its own Attribute Pointers (?)
     glEnableVertexAttribArray(0); // vertex pos
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 6, (void*)(sizeof(float) * 3));
+    
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 8, (void*)(sizeof(float) * 3));
     glEnableVertexAttribArray(1); // vertex color
+    
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 8, (void*)(sizeof(float) * 6));
+    glEnableVertexAttribArray(2); // uv
 
     // glBindVertexArray(NULL); // Doesn't need to be here currently, but is good practice...
 
     //Object 2 (Triangle)
     // glBindVertexArray(VAO[1]); // What exactly do VAOs store????
-
+    //
     // glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
     // glBufferData(GL_ARRAY_BUFFER, sizeof(triangle), triangle, GL_STATIC_DRAW);
-
+    //
     // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[1]);
     // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(triIndices), triIndices, GL_STATIC_DRAW);
-
+    //
     // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0 ); // define vertex attribute of object 2...
     // glEnableVertexAttribArray(0);
     
     glBindVertexArray(NULL); // We NEED to do this to ensure that future unrelated VAO calls don't modify previous attributes!
 
     /*PROGRAM*/
-    // shaderProgram program(&frag, &vert);
-    shaderProgram program2(&frag2, &vert);
+    shaderProgram program(&frag, &vert);
+    // shaderProgram program2(&frag2, &vert);
 
     glBindVertexArray(0);
     // LOOP!
@@ -116,12 +124,12 @@ int main() {
         // glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
         
             /*BOX*/
-        float timeVal = (sin(glfwGetTime() * 4) + 1) / 2.0;
-        int timeUniformHandle = glGetUniformLocation(program2.getProgramHandle(), "globalTime");
+        // float timeVal = (sin(glfwGetTime() * 4) + 1) / 2.0;
+        // int timeUniformHandle = glGetUniformLocation(program.getProgramHandle(), "globalTime");
 
-        program2.useProgram();
+        program.useProgram();
 
-        glUniform1f(timeUniformHandle, timeVal);
+        // glUniform1f(timeUniformHandle, timeVal);
 
         glBindVertexArray(VAO[0]);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
