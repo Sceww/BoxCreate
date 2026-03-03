@@ -4,11 +4,12 @@ layout (location=1) in vec3 vCol;
 layout (location=2) in vec2 uv;
 
 out vec3 aCol;
+out vec2 texCoord;
 
 // uniform vec4 globalTime;
 
 void main() {
     gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
-    // aCol = (aPos+1) / 2.0;
     aCol = vec3(uv, 1.0);
+    texCoord = uv;
 }

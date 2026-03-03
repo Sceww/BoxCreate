@@ -43,3 +43,14 @@ const void shaderProgram::useProgram(){
 const int shaderProgram::getProgramHandle() {
     return program;
 }
+
+const int shaderProgram::getUniformHandle(const char* name) {
+    return glGetUniformLocation(program, name);
+} 
+
+void shaderProgram::setInt(const char* name, int value) {
+    glUniform1i( getUniformHandle(name), value );
+}
+void shaderProgram::setFloat(const char* name, float value) {
+    glUniform1f ( getUniformHandle(name), value );
+}

@@ -15,6 +15,10 @@ public:
     void relinkProgram();
     const int getProgramHandle();
     const void useProgram();
+    const int getUniformHandle(const char* name);
+
+    void setInt(const char* name, int value);
+    void setFloat(const char* name, float value);
 };
 
 

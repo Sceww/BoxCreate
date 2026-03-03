@@ -10,7 +10,7 @@ private:
     std::string sourcePath;
     uint32_t shaderHandle;
     int shaderType;
-    
+
 public:
     shader(std::string filePath, int SHADER_TYPE);
     ~shader();
