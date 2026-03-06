@@ -13,13 +13,16 @@
 #include <class/shaderProgram.hpp>
 
 void printInfo(double time, int frames);
+// static void cursorPositionCallback(GLFWwindow* window, double x, double y);
+
 
 int main() {
     if (!glfwInit()) { 
         return -1;
     }
-
-    GLFWwindow* window = glfwCreateWindow(800, 640, "TEST APP", NULL, NULL);
+    int width = 800, height = 640;
+    GLFWwindow* window = glfwCreateWindow(width, height, "TEST APP", NULL, NULL);
+    // glfwSetCursorPosCallback(window, cursorPositionCallback);
 
     if (!window) {
         glfwTerminate(); 
@@ -46,14 +49,6 @@ int main() {
         0, 1, 3, // tri 1
         1, 2, 3  // tri 2
     };
-    // float triangle[] {
-    //    -1.0f, -1.0f, 0.0f,
-    //     0.0f,  1.0f, 0.0f,
-    //     1.0f, -1.0f, 0.0f
-    // };
-    // uint32_t triIndices[] = {
-    //     0, 1, 2
-    // };
 
     // attempt to load a shader from file...
     // TODO: error handling!
@@ -69,10 +64,11 @@ int main() {
 
     /* OBJECTS */
         /*VBO, VAO*/
-    uint32_t VAO[2], VBO[2], EBO[2];
-    glGenVertexArrays(2, VAO);
-    glGenBuffers(2, VBO);
-    glGenBuffers(2, EBO);
+    const int numArray = 1;
+    uint32_t VAO[numArray], VBO[numArray], EBO[numArray];
+    glGenVertexArrays(numArray, VAO);
+    glGenBuffers(numArray, VBO);
+    glGenBuffers(numArray, EBO);
 
     //Object 1 (Box)
     glBindVertexArray(VAO[0]);
@@ -104,49 +100,70 @@ int main() {
     program.setInt("texture1", dog.getActiveTextureID());
     program.setInt("texture2", rabbit.getActiveTextureID());
 
-    // glBindVertexArray(NULL); // Doesn't need to be here currently, but is good practice...
-    
-    //Object 2 (Triangle)
-    // glBindVertexArray(VAO[1]); // What exactly do VAOs store????
-    //
-    // glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
-    // glBufferData(GL_ARRAY_BUFFER, sizeof(triangle), triangle, GL_STATIC_DRAW);
-    //
-    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[1]);
-    // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(triIndices), triIndices, GL_STATIC_DRAW);
-    //
-    // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0 ); // define vertex attribute of object 2...
-    // glEnableVertexAttribArray(0);
-    
+    int transformHandle = program.getUniformHandle("modelTrans");
+    int camHandle = program.getUniformHandle("view");
+    int projHandle = program.getUniformHandle("projection");
+
     glBindVertexArray(NULL); // We NEED to do this to ensure that future unrelated VAO calls don't modify previous attributes!
     
     glBindVertexArray(0);
     // LOOP!
     while (!glfwWindowShouldClose(window)) {
-        glClearColor(0.1f, 0.3f, 0.3f, 1.0f);
+        glfwPollEvents();
+
+        // width; height;
+        glfwGetFramebufferSize(window, &width, &height);
+        glViewport(0, 0, width, height);
+
+        float timeVal = glfwGetTime();
+        
+        glClearColor((sin(timeVal)+1)/2, (sin(timeVal+1)+1)/2, (sin(timeVal+2)+1)/2, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-        
-        // Draw objects here!
-        //*TRIANGLE*/
-        // program2.useProgram();
-        // glBindVertexArray(VAO[1]);
-        // glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
-        
+
         //  /*BOX*/
         program.useProgram(); // activate program...
         
-        float timeVal = glfwGetTime();
+        // grab mouse pos...
+        double xPos, yPos;
+        glfwGetCursorPos(window, &xPos, &yPos);
+        
+        // convert to NDC...
+        xPos = ((xPos*2) / width)-1;
+        yPos = ((yPos*-2) / height)+1;
+
+        // world origin
+        glm::mat4 worldOrig(1.0);
+        // camera transform
+        glm::mat4 camera(1.0);
+        camera = glm::translate(camera, glm::vec3(0.0, 0.0, ((sin(timeVal)*3 - 5))));
+        camera = glm::rotate(camera, glm::radians(timeVal*20), glm::vec3(0.0, 1.0, 0.0));
+        // projection transform
+        glm::mat4 perspective(1.0);
+        perspective = glm::perspective(glm::radians(45.0f), (float)width/height, 0.1f, 100.0f);
+
+        glm::mat4 modelTrans(1.0);
+        modelTrans = glm::translate(modelTrans, glm::vec3(xPos, yPos, 0.0));
+        modelTrans = glm::rotate(modelTrans, glm::radians(timeVal*100), glm::vec3(1.0, 0.0, 0.0));
+        modelTrans = glm::rotate(modelTrans, glm::radians((float)xPos * 100.0f), glm::vec3(0.0, 1.0, 0.0));
+        modelTrans = glm::rotate(modelTrans, glm::radians((float)yPos * 100.0f), glm::vec3(0.0, 0.0, 1.0));
+
         
         program.setFloat("time", timeVal);
-
+        
+        glUniformMatrix4fv(transformHandle, 1, GL_FALSE, glm::value_ptr(modelTrans)); //
+        glUniformMatrix4fv(camHandle, 1, GL_FALSE, glm::value_ptr(camera));
+        glUniformMatrix4fv(projHandle, 1, GL_FALSE, glm::value_ptr(perspective));
 
         glBindVertexArray(VAO[0]);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         glfwSwapBuffers(window);
-        glfwPollEvents();
     }
 
     glfwTerminate();
     return 0;
-}
+} // int main()
+
+// static void cursorPositionCallback(GLFWwindow* window, double x, double y) {
+
+// }

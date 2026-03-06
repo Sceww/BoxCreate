@@ -8,16 +8,20 @@ out vec2 texCoord;
 
 uniform float time;
 
-vec2 calcVec2Rotation(float angle, vec2 vector);
+uniform mat4 modelTrans;
+uniform mat4 view;
+uniform mat4 projection;
+
+// vec2 calcVec2Rotation(float angle, vec2 vector);
 
 void main() {
-    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+    gl_Position = projection * view * modelTrans * vec4(aPos, 1.0);
     aCol = vec3(uv, 1.0);
-    texCoord = calcVec2Rotation(time, uv);
+    texCoord = uv;
 }
 
-vec2 calcVec2Rotation(float angle, vec2 vector) {
-    vector.x = (cos(angle)*vector.x) - (sin(angle)*vector.y);
-    vector.y = (sin(angle)*vector.x) + (cos(angle)*vector.y);
-    return vector;
-}
+// vec2 calcVec2Rotation(float angle, vec2 vector) {
+//     vector.x = (cos(angle)*vector.x) - (sin(angle)*vector.y);
+//     vector.y = (sin(angle)*vector.x) + (cos(angle)*vector.y);
+//     return vector;
+// }
