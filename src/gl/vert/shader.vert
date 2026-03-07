@@ -15,7 +15,8 @@ uniform mat4 projection;
 // vec2 calcVec2Rotation(float angle, vec2 vector);
 
 void main() {
-    gl_Position = projection * view * modelTrans * vec4(aPos, 1.0);
+    // gl_Position = projection * view * modelTrans * vec4(aPos, 1.0);
+    gl_Position = vec4(aPos, 1.0);
     aCol = vec3(uv, 1.0);
     texCoord = uv;
 }
