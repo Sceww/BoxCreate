@@ -9,6 +9,7 @@ set( SOURCES
     "src/class/shaderProgram.cpp"
     "src/class/image.cpp"
     "src/stb.c"
+    "src/globals.cpp"
 )
 
 project("BoxCreator")

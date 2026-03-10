@@ -1,7 +1,6 @@
 #version 330 core
 out vec4 FragColor;
 
-in vec3 aCol;
 in vec2 texCoord;
 
 uniform float time;

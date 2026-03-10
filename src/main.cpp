@@ -1,6 +1,8 @@
 #include <iostream>
 #include <fstream>
 
+#include <globals.hpp>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -12,6 +14,57 @@
 #include <class/shader.hpp>
 #include <class/shaderProgram.hpp>
 
+void clipSpace_to_screenCoords(double* x, double* y, double width, double height);
+void screenCoords_to_clipSpace(double* x, double* y, double width, double height);
+
+const float bounds[VERTEX_ATTRIBUTE_COUNT * 4] = {
+    // XYZ                UV
+    -0.05,  0.05,  0.0,   0.0, 1.0, // top left
+     0.05,  0.05,  0.0,   1.0, 1.0, // top right
+    -0.05, -0.05,  0.0,   0.0, 0.0, // bottom left
+     0.05, -0.05,  0.0,   1.0, 0.0, // bottom right
+};
+
+void createBox(box box[], uint32_t* numBox, uint32_t indices[], uint32_t* numIndices, double x, double y) {
+    if (*numBox+1 >= MAX_NUMBER_OF_BOXES) {
+        printf("CANNOT CREATE MORE BOXES!\n");
+        return;
+    }
+    for (int i = 0; i < (VERTEX_ATTRIBUTE_COUNT * 4); i += VERTEX_ATTRIBUTE_COUNT) {
+        box[*numBox].vertices[i]   = bounds[i]   + (float)x; // 0  x
+        box[*numBox].vertices[i+1] = bounds[i+1] + (float)y; // 1  y 
+        box[*numBox].vertices[i+2] = bounds[i+2];            // 2  z
+        box[*numBox].vertices[i+3] = bounds[i+3];            // 3   u
+        box[*numBox].vertices[i+4] = bounds[i+4];            // 4   v
+    }
+    indices[*numIndices  ] = 0 + 4 * (*numBox);
+    indices[*numIndices+1] = 1 + 4 * (*numBox);
+    indices[*numIndices+2] = 2 + 4 * (*numBox);
+    indices[*numIndices+3] = 1 + 4 * (*numBox);
+    indices[*numIndices+4] = 2 + 4 * (*numBox);
+    indices[*numIndices+5] = 3 + 4 * (*numBox);
+
+    *numIndices += 6;
+
+    (*numBox)++;
+    
+    printf("Created box #%d!\n", *numBox);
+}
+
+void boxData(box box[], uint32_t numBox, uint32_t indices[], uint32_t numIndices, int vertexArray, int vertexBuffer, int elementBuffer) {
+    glBindVertexArray(vertexArray);
+}
+
+void click_callback(GLFWwindow* window, int button, int action, int mods) { 
+    state_struct* gs = &g_state;
+    if (button == GLFW_MOUSE_BUTTON_LEFT) {
+        double x,y;
+        glfwGetCursorPos(window, &x, &y);
+        screenCoords_to_clipSpace(&x, &y, gs->width, gs->height);
+        createBox(gs->boxes, &gs->numBoxes, gs->indices, &gs->indicesCount, x, y);
+    }
+}
+
 void clipSpace_to_screenCoords(double* x, double* y, double width, double height) {
     *x = ((*x * width) + width) / 2.0;
     *y = ((*y * -height) + height) / 2.0;
@@ -19,15 +72,17 @@ void clipSpace_to_screenCoords(double* x, double* y, double width, double height
 
 void screenCoords_to_clipSpace(double* x, double* y, double width, double height) {
     *x = ((*x * 2) / width) - 1;
-    *y = ((*y * 2) / height) + 1;
+    *y = ((*y * -2) / height) + 1;
 }
 
+
 int main() {
+    state_struct* gs = &g_state;
+
     if (!glfwInit()) { 
         return -1;
     }
-    int width = 800, height = 640;
-    GLFWwindow* window = glfwCreateWindow(width, height, "TEST APP", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(gs->width, gs->height, "TEST APP", NULL, NULL);
 
     if (!window) {
         glfwTerminate(); 
@@ -55,11 +110,20 @@ int main() {
 
     /* OBJECTS */
         /*VBO, VAO*/
-    const int numArray = 1;
-    uint32_t VAO[numArray], VBO[numArray], EBO[numArray];
-    glGenVertexArrays(numArray, VAO);
-    glGenBuffers(numArray, VBO);
-    glGenBuffers(numArray, EBO);
+    glGenVertexArrays(1, &gs->VAO);
+    glGenBuffers(1, &gs->VBO);
+    glGenBuffers(1, &gs->EBO);
+
+
+    // box vertex attributes
+    glBindVertexArray(gs->VAO);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * VERTEX_ATTRIBUTE_COUNT, (void*)0); // position attrib
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * VERTEX_ATTRIBUTE_COUNT, (void*)(sizeof(float)*3)); // uv attrib
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glBindVertexArray(NULL);
+    
+    glfwSetMouseButtonCallback(window, click_callback);
 
     // PICTURE
     flip_images_on_load(true);
@@ -70,20 +134,14 @@ int main() {
 
     program.setInt("texture1", dog.getActiveTextureID());
 
-    int transformHandle = program.getUniformHandle("modelTrans");
-    int camHandle = program.getUniformHandle("view");
-    int projHandle = program.getUniformHandle("projection");
-
     glBindVertexArray(NULL); // We NEED to do this to ensure that future unrelated VAO calls don't modify previous attributes!
-    
-    glBindVertexArray(0);
     // LOOP!
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
         // width; height;
-        glfwGetFramebufferSize(window, &width, &height);
-        glViewport(0, 0, width, height);
+        glfwGetFramebufferSize(window, &gs->width, &gs->height);
+        glViewport(0, 0, gs->width, gs->height);
 
         float timeVal = glfwGetTime();
         
@@ -92,17 +150,11 @@ int main() {
 
         //  /*BOX*/
         program.useProgram(); // activate program...
-        
-        // grab mouse pos...
-        double xPos, yPos;
-        glfwGetCursorPos(window, &xPos, &yPos);
-        
-        screenCoords_to_clipSpace(&xPos, &yPos, width, height);
-        
-        program.setFloat("time", timeVal);
 
-        glBindVertexArray(VAO[0]);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        program.setFloat("time", timeVal);
+        
+        // glDrawElements(GL_TRIANGLES, ???, GL_UNSIGNED_INT, ???);
+        glBindVertexArray(NULL);
 
         glfwSwapBuffers(window);
     }
