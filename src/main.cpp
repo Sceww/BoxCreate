@@ -31,8 +31,8 @@ void createBox(box box[], uint32_t* numBox, uint32_t indices[], uint32_t* numInd
         return;
     }
     for (int i = 0; i < (VERTEX_ATTRIBUTE_COUNT * 4); i += VERTEX_ATTRIBUTE_COUNT) {
-        box[*numBox].vertices[i]   = bounds[i]   + (float)x; // 0  x
-        box[*numBox].vertices[i+1] = bounds[i+1] + (float)y; // 1  y 
+        box[*numBox].vertices[i]   = bounds[i]    + (float)x; // 0  x
+        box[*numBox].vertices[i+1] = bounds[i+1]  + (float)y; // 1  y 
         box[*numBox].vertices[i+2] = bounds[i+2];            // 2  z
         box[*numBox].vertices[i+3] = bounds[i+3];            // 3   u
         box[*numBox].vertices[i+4] = bounds[i+4];            // 4   v
@@ -51,17 +51,34 @@ void createBox(box box[], uint32_t* numBox, uint32_t indices[], uint32_t* numInd
     printf("Created box #%d!\n", *numBox);
 }
 
-void boxData(box box[], uint32_t numBox, uint32_t indices[], uint32_t numIndices, int vertexArray, int vertexBuffer, int elementBuffer) {
+void boxData(box box[], uint32_t numBox, uint32_t indices[], uint32_t numIndices, uint32_t vertexArray, uint32_t vertexBuffer, uint32_t elementBuffer) {
     glBindVertexArray(vertexArray);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+
+    static float verts[(MAX_NUMBER_OF_BOXES * 4) * VERTEX_ATTRIBUTE_COUNT] = {0}; // we probably shouldn't be building vertices like this!
+
+    for (int i = 0; i < MAX_NUMBER_OF_BOXES; i++) { // i is box
+        for (int k = 0; k < VERTEX_ATTRIBUTE_COUNT * 4; k++) { // k is vertex data of box
+            verts[k + i*VERTEX_ATTRIBUTE_COUNT*4] = box[i].vertices[k];
+        }
+    }
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * VERTEX_ATTRIBUTE_COUNT * 4 * numBox, verts, GL_STATIC_DRAW); // place only as many boxes as we need into the buffer
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBuffer);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, (sizeof(uint32_t)*6)*numBox, indices, GL_STATIC_DRAW); // there are 6 uint32_t indices for every n boxes, 6 * n
+
+    glBindVertexArray(NULL); // for safety!
 }
 
 void click_callback(GLFWwindow* window, int button, int action, int mods) { 
     state_struct* gs = &g_state;
-    if (button == GLFW_MOUSE_BUTTON_LEFT) {
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
         double x,y;
         glfwGetCursorPos(window, &x, &y);
         screenCoords_to_clipSpace(&x, &y, gs->width, gs->height);
         createBox(gs->boxes, &gs->numBoxes, gs->indices, &gs->indicesCount, x, y);
+        boxData(gs->boxes, gs->numBoxes, gs->indices, gs->indicesCount, gs->VAO, gs->VBO, gs->EBO);
     }
 }
 
@@ -117,6 +134,7 @@ int main() {
 
     // box vertex attributes
     glBindVertexArray(gs->VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, gs->VBO);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * VERTEX_ATTRIBUTE_COUNT, (void*)0); // position attrib
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * VERTEX_ATTRIBUTE_COUNT, (void*)(sizeof(float)*3)); // uv attrib
     glEnableVertexAttribArray(0);
@@ -137,11 +155,13 @@ int main() {
     glBindVertexArray(NULL); // We NEED to do this to ensure that future unrelated VAO calls don't modify previous attributes!
     // LOOP!
     while (!glfwWindowShouldClose(window)) {
-        glfwPollEvents();
+        glfwPollEvents(); // i believe callbacks are processed here?
 
         // width; height;
         glfwGetFramebufferSize(window, &gs->width, &gs->height);
         glViewport(0, 0, gs->width, gs->height);
+
+        glBindVertexArray(gs->VAO);
 
         float timeVal = glfwGetTime();
         
@@ -153,8 +173,9 @@ int main() {
 
         program.setFloat("time", timeVal);
         
-        // glDrawElements(GL_TRIANGLES, ???, GL_UNSIGNED_INT, ???);
-        glBindVertexArray(NULL);
+        if (gs->numBoxes) {
+            glDrawElements(GL_TRIANGLES, gs->indicesCount, GL_UNSIGNED_INT, 0); //it's important to put 0 as the last argument.
+        }
 
         glfwSwapBuffers(window);
     }
